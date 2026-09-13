@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.3">
+<title>Калькулятор зарплаты в Корее</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  @font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-Regular.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-Medium.woff2') format('woff2'); font-weight: 500; }
+  @font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-SemiBold.woff2') format('woff2'); font-weight: 600; }
+  @font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-Bold.woff2') format('woff2'); font-weight: 700; }
+
+  :root{
+    --blue:#1D64D8; --blue-light:#E4EEFF; --bg:#EEF1F5; --card:#FFFFFF;
+    --text:#101418; --sub:#4B5563; --line:#E3E7EC; --red:#D6293E; --green:#0A8F57; --amber:#B7791F; --amber-bg:#FDF3E2;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{ margin:0; font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; background:#fff; color:var(--text); -webkit-tap-highlight-color: transparent; font-size:17px; line-height:1.5; }
+
+  .topbar{ position:sticky; top:0; background:#fff; z-index:20; display:flex; align-items:center; gap:14px; padding:14px 16px; max-width:560px; margin:0 auto; }
+  .icon-btn{ width:40px;height:40px;flex-shrink:0;border:none;background:var(--bg);border-radius:12px;font-size:22px;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer; }
+  .icon-btn.invisible{visibility:hidden;}
+  .progress-track{flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;}
+  .progress-track.hidden-bar{visibility:hidden;}
+  .progress-fill{height:100%;width:0%;background:var(--blue);border-radius:3px;transition:width .3s ease;}
+
+  .step{display:none;}
+  .step.active{display:block;}
+  .step-inner{ min-height:calc(100vh - 68px); display:flex; flex-direction:column; padding:8px 20px 28px; max-width:560px; margin:0 auto; width:100%; box-sizing:border-box; }
+
+  .eyebrow{font-size:13px;font-weight:800;color:var(--blue);letter-spacing:.4px;text-transform:uppercase;margin:14px 0 8px;}
+  .q-title{font-size:27px;font-weight:800;line-height:1.35;margin:0 0 10px;}
+  .q-desc{font-size:15px;color:var(--sub);margin-bottom:26px;line-height:1.55;}
+  .q-body{flex:0 0 auto;}
+  .q-spacer{flex:1;min-height:24px;}
+  .q-hint{font-size:14px;color:var(--sub);margin-top:14px;line-height:1.55;}
+  .warn{font-size:14px;color:var(--amber);background:var(--amber-bg);padding:12px 14px;border-radius:12px;margin-top:12px;line-height:1.55;font-weight:500;}
+
+  .field{margin-bottom:22px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{ display:block; font-size:15.5px; color:var(--text); margin-bottom:10px; font-weight:600; }
+
+  .seg{ display:flex; background:var(--bg); border-radius:14px; padding:5px; margin-bottom:4px; gap:4px; }
+  .seg button{ flex:1; border:none; background:transparent; padding:16px 6px; font-family:inherit; font-size:15px; font-weight:700; color:var(--sub); border-radius:10px; cursor:pointer; min-height:56px; line-height:1.3; }
+  .seg button.active{ background:var(--card); color:var(--blue); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+  .seg.seg3 button{font-size:14px;}
+  .seg.seg4 button{font-size:13px;padding:12px 4px;min-height:44px;}
+
+  .input-row{ display:flex; align-items:center; background:var(--bg); border-radius:14px; padding:2px 16px; border:1.5px solid transparent; }
+  .input-row:focus-within{ border-color:var(--blue); background:#fff; }
+  .input-row input[type=text]{ flex:1; border:none; background:transparent; font-family:inherit; font-size:23px; font-weight:700; padding:18px 0; color:var(--text); outline:none; min-width:0; }
+  .input-row .unit{font-size:16px;color:var(--sub);font-weight:600;white-space:nowrap;margin-left:10px;}
+
+  .stepper{ display:flex; align-items:center; justify-content:space-between; background:var(--bg); border-radius:14px; padding:8px 8px 8px 18px; }
+  .stepper .val{font-size:19px;font-weight:700;}
+  .stepper .btns{display:flex;gap:8px;}
+  .stepper button{ width:48px;height:48px; border-radius:12px; border:none; background:var(--card); color:var(--blue); font-size:24px; font-weight:700; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+  .stepper button:active{background:var(--blue-light);}
+
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--bg); padding:16px; border-radius:14px; }
+  .toggle-row .txt{flex:1;}
+  .toggle-row .txt .t{font-size:15.5px;font-weight:600;color:var(--text);}
+  .toggle-row .txt .s{font-size:13.5px;color:var(--sub);margin-top:4px;line-height:1.5;}
+  .switch{ position:relative; width:56px; height:34px; flex-shrink:0; }
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{ position:absolute; cursor:pointer; inset:0; background:#D5DAE1; border-radius:34px; transition:.15s; }
+  .slider:before{ position:absolute; content:""; height:26px; width:26px; left:4px; top:4px; background:white; border-radius:50%; transition:.15s; box-shadow:0 1px 2px rgba(0,0,0,.2); }
+  input:checked + .slider{background:var(--blue);}
+  input:checked + .slider:before{transform:translateX(22px);}
+
+  .ratio-seg{ display:flex; gap:10px; }
+  .ratio-seg button{ flex:1; border:2px solid var(--bg); background:var(--bg); padding:14px 0; border-radius:12px; font-family:inherit; font-size:16px; font-weight:700; color:var(--sub); cursor:pointer; min-height:50px; }
+  .ratio-seg button.active{ border-color:var(--blue); background:var(--blue-light); color:var(--blue); }
+
+  .q-next{ width:100%; border:none; background:var(--blue); color:#fff; font-family:inherit; font-size:18px; font-weight:700; padding:19px 0; border-radius:16px; cursor:pointer; margin-top:20px; min-height:58px; }
+  .q-next:active{background:#1852b3;}
+  .q-next.green{background:var(--green);}
+  .q-next.green:active{background:#087a49;}
+  .link-btn{ display:block; width:100%; text-align:center; border:none; background:transparent; color:var(--blue); font-family:inherit; font-size:15.5px; font-weight:700; padding:14px 0; cursor:pointer; }
+
+  .net-box{ text-align:center; padding:20px 0 18px; }
+  .net-box .label{font-size:15px;color:var(--sub);margin-bottom:8px;font-weight:600;}
+  .net-box .amount{font-size:36px;font-weight:800;color:var(--blue);line-height:1.2;}
+  .net-box .sub{font-size:14px;color:var(--sub);margin-top:8px;}
+  .net-box.green .amount{color:var(--green);}
+
+  .row{ display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); font-size:16px; gap:10px; }
+  .row:last-child{border-bottom:none;}
+  .row .name{color:var(--text);font-weight:600;}
+  .row .name .sub{display:block;font-size:12.5px;color:var(--sub);font-weight:500;margin-top:2px;}
+  .row .value{font-weight:700;text-align:right;white-space:nowrap;}
+  .row .value.minus{color:var(--red);}
+  .row.divider{border-bottom:none;padding-top:18px;margin-top:4px;border-top:2px dashed var(--line);}
+  .row.divider .name, .row.divider .value{font-size:17.5px;}
+
+  .badge{ display:inline-block; font-size:13px; font-weight:700; color:var(--blue); background:var(--blue-light); padding:6px 12px; border-radius:8px; margin-bottom:12px; }
+  .badge.green{color:var(--green);background:#E3F9EE;}
+  .hidden{display:none !important;}
+
+  .market-card{ display:flex; align-items:center; justify-content:space-between; padding:16px; background:var(--bg); border-radius:14px; margin-top:14px; }
+  .market-card .mname{font-size:16px;font-weight:700;}
+  .market-card .mprice{font-size:14px;color:var(--sub);margin-top:2px;}
+  .market-card .mchange{font-size:20px;font-weight:800;}
+  .market-card .mchange.up{color:var(--red);}
+  .market-card .mchange.down{color:#1B6FE0;}
+  .spinner{display:inline-block;width:18px;height:18px;border:3px solid var(--blue-light);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn invisible" id="backBtn" onclick="goBack()">‹</button>
+  <div class="progress-track" id="progressTrack"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<!-- STEP 1: EMPLOYMENT -->
+<div class="step active" id="step-employment">
+  <div class="step-inner">
+    <div class="eyebrow">🇰🇷 Калькулятор зарплаты</div>
+    <div class="q-title">Как вы трудоустроены?</div>
+    <div class="q-desc">Это влияет на то, как считаются страховые взносы.</div>
+    <div class="q-body">
+      <div class="field">
+        <div class="seg">
+          <button id="segOfficial" class="active" onclick="setEmployment('official')">Официальное<br><span style="font-weight:500;font-size:12.5px;">정규직</span></button>
+          <button id="segOutsourcing" onclick="setEmployment('outsourcing')">Аутсорсинг<br><span style="font-weight:500;font-size:12.5px;">파견/아웃소싱</span></button>
+        </div>
+        <div id="employmentHint" class="q-hint">При официальном трудоустройстве компания напрямую оформляет вас и платит все взносы.</div>
+      </div>
+      <div class="field">
+        <div class="toggle-row">
+          <div class="txt">
+            <div class="t">Компания реально платит 4대보험</div>
+            <div class="s">Пенсия, мед. страховка и др. видны в расчётном листе как вычеты</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="insToggle" checked onchange="toggleInsurance()"><span class="slider"></span></label>
+        </div>
+        <div id="insWarn" class="warn hidden">⚠️ Без оформления 4대보험 у вас нет пенсионных накоплений, медстраховки и права на пособие по безработице. Это законодательно обязательно, даже при работе через агентство.</div>
+      </div>
+    </div>
+    <div class="q-spacer"></div>
+    <button class="q-next" onclick="goTo('step-salary')">Далее</button>
+  </div>
+</div>
+
+<!-- STEP 2: SALARY -->
+<div class="step" id="step-salary">
+  <div class="step-inner">
+    <div class="eyebrow">Зарплата</div>
+    <div class="q-title">Ваша зарплата за месяц?</div>
+    <div class="q-desc">Впишите сумму «지급액계» из расчётного листа — оклад плюс все надбавки за этот месяц.</div>
+    <div class="q-body">
+      <div class="field">
+        <label>Зарплата за месяц (월급)</label>
+        <div class="input-row">
+          <input type="text" id="salaryInput" inputmode="numeric" placeholder="2,900,000" oninput="formatNumberInput(this)">
+          <span class="unit">원</span>
+        </div>
+      </div>
+    </div>
+    <div class="q-spacer"></div>
+    <button class="q-next" onclick="goSalaryNext()">Далее</button>
+  </div>
+</div>
+
+<!-- STEP 3: TRANSPORT -->
+<div class="step" id="step-transport">
+  <div class="step-inner">
+    <div class="eyebrow">Льготы</div>
+    <div class="q-title">Есть дорожные расходы?</div>
+    <div class="q-desc">교통비 — некоторые компании выделяют часть транспортных расходов отдельной необлагаемой строкой (обычно до 200,000원/мес.). Если такого нет — оставьте 0.</div>
+    <div class="q-body">
+      <div class="field">
+        <label>Дорожные расходы, 교통비</label>
+        <div class="input-row">
+          <input type="text" id="transportInput" inputmode="numeric" value="0" oninput="formatNumberInput(this)">
+          <span class="unit">원 / мес.</span>
+        </div>
+      </div>
+    </div>
+    <div class="q-spacer"></div>
+    <button class="q-next" onclick="goTo('step-shift')">Далее</button>
+  </div>
+</div>
+
+<!-- STEP 4: SHIFT -->
+<div class="step" id="step-shift">
+  <div class="step-inner">
+    <div class="eyebrow">График</div>
+    <div class="q-title">Какой у вас график смен?</div>
+    <div class="q-desc">Это нужно для точного расчёта необлагаемой доплаты за ночные часы.</div>
+    <div class="q-body">
+      <div class="field">
+        <div class="seg seg3">
+          <button id="segDay" class="active" onclick="setShift('day')">Дневная<br><span style="font-weight:500;font-size:12px;">주간</span></button>
+          <button id="segNight" onclick="setShift('night')">Ночная<br><span style="font-weight:500;font-size:12px;">야간</span></button>
+          <button id="segMixed" onclick="setShift('mixed')">Сменная<br><span style="font-weight:500;font-size:12px;">교대</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="q-spacer"></div>
+    <button class="q-next" onclick="goShiftNext()">Далее</button>
+  </div>
+</div>
+
+<!-- STEP 4b: NIGHT DETAILS (conditional) -->
+<div class="step" id="step-night-detail">
+  <div class="step-inner">
+    <div class="eyebrow">График</div>
+    <div class="q-title">Сколько ночных смен?</div>
+    <div class="q-desc">Доплата за часы 22:00–06:00 частично не облагается налогом — до 200,000원/мес. Условие: зарплата за прошлый год ≤30 млн ₩, в этом месяце ≤2.1 млн ₩.</div>
+    <div class="q-body">
+      <div class="field">
+        <label>Ночных смен в месяц</label>
+        <div class="stepper">
+          <span class="val" id="nightShiftsVal">4</span>
+          <div class="btns"><button onclick="changeNightShifts(-1)">−</button><button onclick="changeNightShifts(1)">+</button></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Часов за одну ночную смену</label>
+        <div class="stepper">
+          <span class="val" id="nightHoursVal">8</span>
+          <div class="btns"><button onclick="changeNightHours(-1)">−</button><button onclick="changeNightHours(1)">+</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="q-spacer"></div>
+    <button class="q-next" onclick="goTo('step-family')">Далее</button>
+  </div>
+</div>
+
+<!-- STEP 5: FAMILY -->
+<div class="step" id="step-family">
+  <div class="step-inner">
+    <div class="eyebrow">Семья</div>
+    <div class="q-title">Иждивенцы и дети?</div>
+    <div class="q-desc">Влияет на налоговые вычеты.</div>
+    <div class="q-body">
+      <div class="field">
+        <label>Иждивенцы, включая себя (부양가족)</label>
+        <div class="stepper">
+          <span class="val" id="depVal">1 чел.</span>
+          <div class="btns"><button onclick="changeDep(-1)">−</button><button onclick="changeDep(1)">+</button></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Из них дети 8–20 лет (자녀 세액공제)</label>
+        <div class="stepper">
+          <span class="val" id="childVal">0 чел.</span>
+          <div class="btns"><button onclick="changeChild(-1)">−</button><button onclick="changeChild(1)">+</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="q-spacer"></div>
+    <button class="q-next" onclick="goTo('step-advanced')">Далее</button>
+  </div>
+</div>
+
+<!-- STEP 6: ADVANCED -->
+<div class="step" id="step-advanced">
+  <div class="step-inner">
+    <div class="eyebrow">Дополнительно · необязательно</div>
+    <div class="q-title">Есть точные данные?</div>
+    <div class="q-desc">Если не знаете — просто нажмите «Далее», всё посчитается автоматически.</div>
+    <div class="q-body">
+      <div class="field">
+        <label>Компенсация за авто, 자가운전보조금</label>
+        <div class="input-row">
+          <input type="text" id="carInput" inputmode="numeric" value="0" oninput="formatNumberInput(this)">
+          <span class="unit">원 / мес.</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Точная необлагаемая сумма ночных/сверхурочных</label>
+        <div class="input-row">
+          <input type="text" id="nightManualInput" inputmode="numeric" placeholder="пусто = авто-расчёт" oninput="formatNumberInput(this)">
+          <span class="unit">원 / мес.</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>База для пенсии/мед.страховки</label>
+        <div class="input-row">
+          <input type="text" id="insBaseInput" inputmode="numeric" placeholder="пусто = вся зарплата" oninput="formatNumberInput(this)">
+          <span class="unit">원</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Ставка удержания налога (원천징수 비율)</label>
+        <div class="ratio-seg">
+          <button data-r="80" onclick="setRatio(80)">80%</button>
+          <button data-r="100" class="active" onclick="setRatio(100)">100%</button>
+          <button data-r="120" onclick="setRatio(120)">120%</button>
+        </div>
+      </div>
+    </div>
+    <div class="q-spacer"></div>
+    <button class="q-next" onclick="goAdvancedNext()">Рассчитать</button>
+  </div>
+</div>
+
+<!-- STEP 7: RESULTS -->
+<div class="step" id="step-results">
+  <div class="step-inner">
+    <div class="eyebrow">Результат</div>
+    <div class="badge">Начислено / удержано</div>
+    <div class="net-box">
+      <div class="label" id="netLabel">Сумма на руки в месяц (실수령액)</div>
+      <div class="amount" id="netAmount">0 원</div>
+      <div class="sub" id="netSub"></div>
+    </div>
+
+    <button class="link-btn" id="annualToggleBtn" onclick="toggleAnnualView()">Показать годовой доход →</button>
+
+    <div class="q-body" style="margin-top:8px;">
+      <div class="row"><div class="name">Оклад <span class="sub">기본급여</span></div><div class="value" id="grossRow">0 원</div></div>
+      <div id="insBadgeWrap">
+        <div class="badge" style="margin-top:16px;">Удержания (공제내역)</div>
+        <div class="row"><div class="name">Нац. пенсия <span class="sub">국민연금 (4.75%)</span></div><div class="value minus" id="pensionRow">0 원</div></div>
+        <div class="row"><div class="name">Мед. страховка <span class="sub">건강보험 (3.595%)</span></div><div class="value minus" id="healthRow">0 원</div></div>
+        <div class="row"><div class="name">Долгоср. уход <span class="sub">장기요양보험</span></div><div class="value minus" id="ltcRow">0 원</div></div>
+        <div class="row"><div class="name">Страх. занятости <span class="sub">고용보험 (0.9%)</span></div><div class="value minus" id="empRow">0 원</div></div>
+      </div>
+      <div id="insSkippedNote" class="q-hint hidden">4대보험 не удерживается (отключено в настройках).</div>
+      <div class="row"><div class="name">Подоходный налог <span class="sub">소득세</span></div><div class="value minus" id="taxRow">0 원</div></div>
+      <div class="row"><div class="name">Местный налог <span class="sub">지방소득세</span></div><div class="value minus" id="localTaxRow">0 원</div></div>
+      <div class="row divider"><div class="name">Всего удержано <span class="sub">공제총액</span></div><div class="value minus" id="totalDeductRow">0 원</div></div>
+      <div class="q-hint">⚠️ Расчёт приблизительный, близкий к итогу 연말정산. Точную сумму по 간이세액표 уточняйте у бухгалтерии.</div>
+    </div>
+
+    <div class="q-spacer"></div>
+    <button class="q-next green" onclick="goTo('step-budget-1')">Далее: расходы и бюджет →</button>
+  </div>
+</div>
+
+<!-- STEP 8: BUDGET 1 -->
+<div class="step" id="step-budget-1">
+  <div class="step-inner">
+    <div class="eyebrow">Бюджет</div>
+    <div class="q-title">Жильё и коммуналка</div>
+    <div class="q-desc">Сколько уходит на это каждый месяц?</div>
+    <div class="q-body">
+      <div class="field">
+        <label>Аренда жилья / ипотека</label>
+        <div class="input-row"><input type="text" id="expRent" inputmode="numeric" value="0" oninput="formatNumberInput(this)"><span class="unit">원</span></div>
+      </div>
+      <div class="field">
+        <label>Коммунальные услуги</label>
+        <div class="input-row"><input type="text" id="expUtil" inputmode="numeric" value="0" oninput="formatNumberInput(this)"><span class="unit">원</span></div>
+      </div>
+    </div>
+    <div class="q-spacer"></div>
+    <button class="q-next" onclick="goTo('step-budget-2')">Далее</button>
+  </div>
+</div>
+
+<!-- STEP 9: BUDGET 2 -->
+<div class="step" id="step-budget-2">
+  <div class="step-inner">
+    <div class="eyebrow">Бюджет</div>
+    <div class="q-title">Связь, авто, топливо</div>
+    <div class="q-desc">Сколько уходит на это каждый месяц?</div>
+    <div class="q-body">
+      <div class="field">
+        <label>Сотовая связь</label>
+        <div class="input-row"><input type="text" id="expPhone" inputmode="numeric" value="0" oninput="formatNumberInput(this)"><span class="unit">원</span></div>
+      </div>
+      <div class="field">
+        <label>Кредит за машину</label>
+        <div class="input-row"><input type="text" id="expCar" inputmode="numeric" value="0" oninput="formatNumberInput(this)"><span class="unit">원</span></div>
+      </div>
+      <div class="field">
+        <label>Топливо</label>
+        <div class="input-row"><input type="text" id="expFuel" inputmode="numeric" value="0" oninput="formatNumberInput(this)"><span class="unit">원</span></div>
+      </div>
+    </div>
+    <div class="q-spacer"></div>
+    <button class="q-next" onclick="goTo('step-budget-3')">Далее</button>
+  </div>
+</div>
+
+<!-- STEP 10: BUDGET 3 -->
+<div class="step" id="step-budget-3">
+  <div class="step-inner">
+    <div class="eyebrow">Бюджет</div>
+    <div class="q-title">Питание и остальное</div>
+    <div class="q-desc">Последний шаг перед подсчётом остатка.</div>
+    <div class="q-body">
+      <div class="field">
+        <label>Питание</label>
+        <div class="input-row"><input type="text" id="expFood" inputmode="numeric" value="0" oninput="formatNumberInput(this)"><span class="unit">원</span></div>
+      </div>
+      <div class="field">
+        <label>Другие подписки и расходы</label>
+        <div class="input-row"><input type="text" id="expOther" inputmode="numeric" value="0" oninput="formatNumberInput(this)"><span class="unit">원</span></div>
+      </div>
+    </div>
+    <div class="q-spacer"></div>
+    <button class="q-next green" onclick="goBudgetResult()">Рассчитать остаток</button>
+  </div>
+</div>
+
+<!-- STEP 11: BUDGET RESULT -->
+<div class="step" id="step-budget-result">
+  <div class="step-inner">
+    <div class="eyebrow">Бюджет</div>
+    <div class="badge green">Результат</div>
+    <div class="net-box green">
+      <div class="label" id="budgetLabel">Свободный остаток в месяц</div>
+      <div class="amount" id="budgetAmount">0 원</div>
+      <div class="sub" id="budgetSub"></div>
+    </div>
+    <div class="q-desc" style="text-align:center;">Эту сумму можно откладывать или инвестировать каждый месяц.</div>
+    <div class="q-spacer"></div>
+    <button class="q-next" onclick="goTo('step-market')">Посмотреть рыночную статистику →</button>
+  </div>
+</div>
+
+<!-- STEP 12: MARKET -->
+<div class="step" id="step-market">
+  <div class="step-inner">
+    <div class="eyebrow">Справочно</div>
+    <div class="q-title">Рыночная статистика</div>
+    <div class="q-desc">Изменение котировок за период — не индивидуальная инвестиционная рекомендация.</div>
+    <div class="q-body">
+      <div class="field">
+        <label>Актив</label>
+        <div class="seg seg4">
+          <button class="active" data-sym="^KS11" onclick="setMarketSymbol('^KS11', this)">KOSPI</button>
+          <button data-sym="^GSPC" onclick="setMarketSymbol('^GSPC', this)">S&P 500</button>
+          <button data-sym="005930.KS" onclick="setMarketSymbol('005930.KS', this)">Samsung</button>
+          <button data-sym="BTC-USD" onclick="setMarketSymbol('BTC-USD', this)">Bitcoin</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Период</label>
+        <div class="ratio-seg">
+          <button data-p="1" class="active" onclick="setMarketPeriod(1, this)">1 мес.</button>
+          <button data-p="6" onclick="setMarketPeriod(6, this)">6 мес.</button>
+          <button data-p="12" onclick="setMarketPeriod(12, this)">12 мес.</button>
+        </div>
+      </div>
+      <button class="q-next" style="margin-top:8px;" onclick="fetchMarketData()">Показать статистику</button>
+      <div id="marketResultWrap" style="margin-top:6px;"></div>
+      <div class="q-hint">Данные из открытого источника котировок, могут запаздывать или быть временно недоступны. Решения об инвестициях принимайте самостоятельно или после консультации с финансовым консультантом.</div>
+    </div>
+    <div class="q-spacer"></div>
+  </div>
+</div>
+
+<script>
+try{ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }catch(e){}
+
+// ---- NAVIGATION ----
+const QUESTION_STEPS = ['step-employment','step-salary','step-transport','step-shift','step-night-detail','step-family','step-advanced'];
+let history = ['step-employment'];
+
+function updateChrome(stepId){
+  const idx = QUESTION_STEPS.indexOf(stepId);
+  const track = document.getElementById('progressTrack');
+  if(idx>=0){
+    track.classList.remove('hidden-bar');
+    document.getElementById('progressFill').style.width = ((idx+1)/QUESTION_STEPS.length*100)+'%';
+  } else {
+    track.classList.add('hidden-bar');
+  }
+  document.getElementById('backBtn').classList.toggle('invisible', history.length<=1);
+}
+
+function goTo(id){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  history.push(id);
+  updateChrome(id);
+  window.scrollTo(0,0);
+}
+
+function goBack(){
+  if(history.length<=1) return;
+  history.pop();
+  const prev = history[history.length-1];
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById(prev).classList.add('active');
+  updateChrome(prev);
+  window.scrollTo(0,0);
+}
+
+updateChrome('step-employment');
+
+function goSalaryNext(){
+  const salary = Number(document.getElementById('salaryInput').value.replace(/,/g,'')) || 0;
+  if(salary <= 0){ alert('Введите сумму зарплаты'); return; }
+  goTo('step-transport');
+}
+
+function goShiftNext(){
+  if(shift === 'day'){ goTo('step-family'); } else { goTo('step-night-detail'); }
+}
+
+function goAdvancedNext(){
+  calculate();
+  goTo('step-results');
+}
+
+function goBudgetResult(){
+  calcBudget();
+  goTo('step-budget-result');
+}
+
+// ---- STATE ----
+let employment = 'official';
+let insuranceOn = true;
+let shift = 'day';
+let nightShifts = 4;
+let nightHours = 8;
+let dependents = 1;
+let children = 0;
+let resultTab = 'monthly';
+let withholdRatio = 100;
+let lastResult = null;
+let marketSymbol = '^KS11';
+let marketPeriod = 1;
+
+function setEmployment(e){
+  employment = e;
+  document.getElementById('segOfficial').classList.toggle('active', e==='official');
+  document.getElementById('segOutsourcing').classList.toggle('active', e==='outsourcing');
+  const hint = document.getElementById('employmentHint');
+  if(e==='official'){
+    hint.textContent = 'При официальном трудоустройстве компания напрямую оформляет вас и платит все взносы.';
+  } else {
+    hint.textContent = 'При работе через агентство (파견/아웃소싱) взносы и налоги оформляются по тем же правилам, но иногда агентства платят «на руки» без официального оформления — проверьте переключатель ниже.';
+  }
+}
+
+function toggleInsurance(){
+  insuranceOn = document.getElementById('insToggle').checked;
+  document.getElementById('insWarn').classList.toggle('hidden', insuranceOn);
+}
+
+function setShift(s){
+  shift = s;
+  document.getElementById('segDay').classList.toggle('active', s==='day');
+  document.getElementById('segNight').classList.toggle('active', s==='night');
+  document.getElementById('segMixed').classList.toggle('active', s==='mixed');
+}
+
+function changeNightShifts(d){
+  nightShifts = Math.max(0, Math.min(31, nightShifts + d));
+  document.getElementById('nightShiftsVal').textContent = nightShifts;
+}
+function changeNightHours(d){
+  nightHours = Math.max(1, Math.min(12, nightHours + d));
+  document.getElementById('nightHoursVal').textContent = nightHours;
+}
+
+function setRatio(r){
+  withholdRatio = r;
+  document.querySelectorAll('.ratio-seg button[data-r]').forEach(b=>b.classList.toggle('active', Number(b.dataset.r)===r));
+}
+
+function formatNumberInput(el){
+  let raw = el.value.replace(/[^0-9]/g,'');
+  if(raw===''){ el.value=''; return; }
+  el.value = Number(raw).toLocaleString('en-US');
+}
+
+function changeDep(d){
+  dependents = Math.max(1, Math.min(11, dependents + d));
+  document.getElementById('depVal').textContent = dependents + ' чел.';
+  if(children > dependents){ children = dependents; document.getElementById('childVal').textContent = children + ' чел.'; }
+}
+function changeChild(d){
+  children = Math.max(0, Math.min(dependents, children + d));
+  document.getElementById('childVal').textContent = children + ' чел.';
+}
+
+function won(n){ return Math.round(n).toLocaleString('en-US') + ' 원'; }
+
+const PENSION_MIN_BASE = 400000;
+const PENSION_MAX_BASE = 6370000;
+const STANDARD_MONTHLY_HOURS = 209;
+
+function calcInsurance(insuranceBase, employmentBase){
+  if(!insuranceOn){ return { pension:0, health:0, ltc:0, employment:0, total:0 }; }
+  const pensionBase = Math.min(Math.max(insuranceBase, PENSION_MIN_BASE), PENSION_MAX_BASE);
+  const pension = pensionBase * 0.0475;
+  const health = insuranceBase * 0.03595;
+  const ltc = health * 0.1314;
+  const employmentIns = employmentBase * 0.009;
+  return { pension, health, ltc, employment: employmentIns, total: pension+health+ltc+employmentIns };
+}
+
+function earnedIncomeDeduction(gross){
+  if(gross <= 5000000) return gross*0.7;
+  if(gross <= 15000000) return 3500000 + (gross-5000000)*0.4;
+  if(gross <= 45000000) return 7500000 + (gross-15000000)*0.15;
+  if(gross <= 100000000) return 12000000 + (gross-45000000)*0.05;
+  return 14750000 + (gross-100000000)*0.02;
+}
+
+function progressiveTax(base){
+  if(base <= 0) return 0;
+  if(base <= 14000000) return base*0.06;
+  if(base <= 50000000) return 840000 + (base-14000000)*0.15;
+  if(base <= 88000000) return 6240000 + (base-50000000)*0.24;
+  if(base <= 150000000) return 15360000 + (base-88000000)*0.35;
+  if(base <= 300000000) return 37060000 + (base-150000000)*0.38;
+  if(base <= 500000000) return 94060000 + (base-300000000)*0.40;
+  if(base <= 1000000000) return 174060000 + (base-500000000)*0.42;
+  return 384060000 + (base-1000000000)*0.45;
+}
+
+function earnedIncomeTaxCredit(calculatedTax, gross){
+  let credit;
+  if(calculatedTax <= 1300000) credit = calculatedTax*0.55;
+  else credit = 715000 + (calculatedTax-1300000)*0.3;
+
+  let cap;
+  if(gross <= 33000000) cap = 740000;
+  else if(gross <= 70000000) cap = Math.max(660000, 740000 - (gross-33000000)*0.008);
+  else if(gross <= 120000000) cap = Math.max(500000, 660000 - (gross-70000000)*0.0005);
+  else cap = Math.max(200000, 500000 - (gross-120000000)*0.0005);
+
+  return Math.min(credit, cap);
+}
+
+function childTaxCredit(n){
+  if(n <= 0) return 0;
+  if(n === 1) return 150000;
+  if(n === 2) return 350000;
+  return 350000 + (n-2)*300000;
+}
+
+function calculate(){
+  const salaryRaw = document.getElementById('salaryInput').value.replace(/,/g,'');
+  const transportRaw = document.getElementById('transportInput').value.replace(/,/g,'');
+  const carRaw = document.getElementById('carInput').value.replace(/,/g,'');
+  const insBaseRaw = document.getElementById('insBaseInput').value.replace(/,/g,'');
+  const nightManualRaw = document.getElementById('nightManualInput').value.replace(/,/g,'');
+
+  const monthlyGrossTotal = Number(salaryRaw) || 0;
+  const transport = Math.min(Number(transportRaw) || 0, 200000);
+  const car = Math.min(Number(carRaw) || 0, 200000);
+  const insBaseManual = Number(insBaseRaw) || 0;
+  const nightManual = Number(nightManualRaw) || 0;
+
+  const annualGrossTotal = monthlyGrossTotal * 12;
+
+  let nightAllowance = 0;
+  if(nightManual > 0){
+    nightAllowance = Math.min(200000, nightManual);
+  } else if(shift === 'night' || shift === 'mixed'){
+    const hourlyWageEstimate = monthlyGrossTotal / STANDARD_MONTHLY_HOURS;
+    nightAllowance = Math.min(200000, nightShifts * nightHours * hourlyWageEstimate * 0.5);
+  }
+
+  const totalNonTaxable = transport + car + nightAllowance;
+  const monthlyTaxable = Math.max(0, monthlyGrossTotal - totalNonTaxable);
+  const grossAnnualTaxable = monthlyTaxable * 12;
+
+  const insuranceBase = insBaseManual > 0 ? insBaseManual : monthlyTaxable;
+
+  const ins = calcInsurance(insuranceBase, monthlyTaxable);
+  const insAnnual = { pension: ins.pension*12, health: ins.health*12, ltc: ins.ltc*12, employment: ins.employment*12, total: ins.total*12 };
+
+  const deduction = earnedIncomeDeduction(grossAnnualTaxable);
+  const earnedIncomeAmount = Math.max(0, grossAnnualTaxable - deduction);
+  const personalDeduction = dependents * 1500000;
+  const socialInsuranceDeduction = insAnnual.total;
+  const taxBase = Math.max(0, earnedIncomeAmount - personalDeduction - socialInsuranceDeduction);
+
+  let calculatedTax = progressiveTax(taxBase);
+  const credit = earnedIncomeTaxCredit(calculatedTax, grossAnnualTaxable);
+  const cCredit = childTaxCredit(children);
+  let decidedTaxAnnual = Math.max(0, (calculatedTax - credit - cCredit)) * (withholdRatio/100);
+  let localTaxAnnual = decidedTaxAnnual * 0.1;
+
+  const incomeTaxMonthly = decidedTaxAnnual/12;
+  const localTaxMonthly = localTaxAnnual/12;
+
+  const totalDeductMonthly = ins.total + incomeTaxMonthly + localTaxMonthly;
+  const netMonthly = monthlyGrossTotal - totalDeductMonthly;
+
+  const totalDeductAnnual = insAnnual.total + decidedTaxAnnual + localTaxAnnual;
+  const netAnnual = annualGrossTotal - totalDeductAnnual;
+
+  lastResult = { monthlyGrossTotal, annualGrossTotal, ins, insAnnual, incomeTaxMonthly, localTaxMonthly, decidedTaxAnnual, localTaxAnnual, totalDeductMonthly, netMonthly, totalDeductAnnual, netAnnual };
+
+  document.getElementById('insBadgeWrap').classList.toggle('hidden', !insuranceOn);
+  document.getElementById('insSkippedNote').classList.toggle('hidden', insuranceOn);
+
+  resultTab = 'monthly';
+  document.getElementById('annualToggleBtn').textContent = 'Показать годовой доход →';
+  renderResult();
+}
+
+function toggleAnnualView(){
+  resultTab = resultTab==='monthly' ? 'annual' : 'monthly';
+  document.getElementById('annualToggleBtn').textContent = resultTab==='annual' ? 'Показать месячный доход →' : 'Показать годовой доход →';
+  renderResult();
+}
+
+function renderResult(){
+  if(!lastResult) return;
+  const r = lastResult;
+  if(resultTab==='monthly'){
+    document.getElementById('netLabel').textContent = 'Сумма на руки в месяц (실수령액)';
+    document.getElementById('netAmount').textContent = won(r.netMonthly);
+    document.getElementById('netSub').textContent = 'из ' + won(r.monthlyGrossTotal) + ' начислено';
+    document.getElementById('grossRow').textContent = won(r.monthlyGrossTotal);
+    document.getElementById('pensionRow').textContent = won(r.ins.pension);
+    document.getElementById('healthRow').textContent = won(r.ins.health);
+    document.getElementById('ltcRow').textContent = won(r.ins.ltc);
+    document.getElementById('empRow').textContent = won(r.ins.employment);
+    document.getElementById('taxRow').textContent = won(r.incomeTaxMonthly);
+    document.getElementById('localTaxRow').textContent = won(r.localTaxMonthly);
+    document.getElementById('totalDeductRow').textContent = won(r.totalDeductMonthly);
+  } else {
+    document.getElementById('netLabel').textContent = 'Сумма на руки за год (연간 실수령액)';
+    document.getElementById('netAmount').textContent = won(r.netAnnual);
+    document.getElementById('netSub').textContent = 'из ' + won(r.annualGrossTotal) + ' начислено';
+    document.getElementById('grossRow').textContent = won(r.annualGrossTotal);
+    document.getElementById('pensionRow').textContent = won(r.insAnnual.pension);
+    document.getElementById('healthRow').textContent = won(r.insAnnual.health);
+    document.getElementById('ltcRow').textContent = won(r.insAnnual.ltc);
+    document.getElementById('empRow').textContent = won(r.insAnnual.employment);
+    document.getElementById('taxRow').textContent = won(r.decidedTaxAnnual);
+    document.getElementById('localTaxRow').textContent = won(r.localTaxAnnual);
+    document.getElementById('totalDeductRow').textContent = won(r.totalDeductAnnual);
+  }
+}
+
+// ---- BUDGET ----
+function calcBudget(){
+  if(!lastResult) return;
+  const ids = ['expRent','expUtil','expPhone','expCar','expFuel','expFood','expOther'];
+  let total = 0;
+  ids.forEach(id=>{
+    const v = Number(document.getElementById(id).value.replace(/,/g,'')) || 0;
+    total += v;
+  });
+  const free = lastResult.netMonthly - total;
+  const amountEl = document.getElementById('budgetAmount');
+  const subEl = document.getElementById('budgetSub');
+  if(free >= 0){
+    amountEl.textContent = won(free);
+    amountEl.style.color = 'var(--green)';
+    subEl.textContent = 'Можно откладывать или инвестировать каждый месяц';
+  } else {
+    amountEl.textContent = '−' + won(Math.abs(free));
+    amountEl.style.color = 'var(--red)';
+    subEl.textContent = 'Расходы превышают зарплату на эту сумму — стоит пересмотреть бюджет';
+  }
+}
+
+// ---- MARKET ----
+function setMarketSymbol(sym, btn){
+  marketSymbol = sym;
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setMarketPeriod(p, btn){
+  marketPeriod = p;
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+const MARKET_NAMES = { '^KS11':'KOSPI (코스피)', '^GSPC':'S&P 500', '005930.KS':'Samsung Electronics', 'BTC-USD':'Bitcoin (BTC/USD)' };
+
+async function fetchMarketData(){
+  const wrap = document.getElementById('marketResultWrap');
+  wrap.innerHTML = '<div class="q-hint"><span class="spinner"></span> Загружаем котировки…</div>';
+
+  const rangeParam = marketPeriod <= 1 ? '2mo' : (marketPeriod <= 6 ? '7mo' : '13mo');
+  const urls = [
+    'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(marketSymbol) + '?range=' + rangeParam + '&interval=1d',
+    'https://query2.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(marketSymbol) + '?range=' + rangeParam + '&interval=1d',
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + marketSymbol + '?range=' + rangeParam + '&interval=1d')
+  ];
+
+  for(const url of urls){
+    try{
+      const res = await fetch(url);
+      if(!res.ok) continue;
+      const data = await res.json();
+      const result = data.chart && data.chart.result && data.chart.result[0];
+      if(!result) continue;
+      const timestamps = result.timestamp;
+      const closes = result.indicators.quote[0].close;
+      if(!timestamps || !closes) continue;
+
+      let lastIdx = closes.length - 1;
+      while(lastIdx > 0 && (closes[lastIdx]===null || closes[lastIdx]===undefined)) lastIdx--;
+      const lastPrice = closes[lastIdx];
+      const lastTime = timestamps[lastIdx] * 1000;
+
+      const targetTime = lastTime - marketPeriod * 30.44 * 24 * 3600 * 1000;
+      let startIdx = 0;
+      for(let i=0;i<timestamps.length;i++){
+        if(timestamps[i]*1000 <= targetTime) startIdx = i;
+      }
+      while(startIdx < closes.length-1 && (closes[startIdx]===null || closes[startIdx]===undefined)) startIdx++;
+      const startPrice = closes[startIdx];
+
+      if(!lastPrice || !startPrice){ continue; }
+
+      const pct = ((lastPrice - startPrice) / startPrice) * 100;
+      const up = pct >= 0;
+      const priceStr = lastPrice >= 1000 ? Math.round(lastPrice).toLocaleString('en-US') : lastPrice.toFixed(2);
+
+      wrap.innerHTML =
+        '<div class="market-card">' +
+          '<div>' +
+            '<div class="mname">' + MARKET_NAMES[marketSymbol] + '</div>' +
+            '<div class="mprice">Текущая цена: ' + priceStr + '</div>' +
+          '</div>' +
+          '<div class="mchange ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + Math.abs(pct).toFixed(1) + '%</div>' +
+        '</div>' +
+        '<div class="q-hint">Изменение за последние ' + marketPeriod + ' мес.</div>';
+      return;
+    }catch(e){ /* try next url */ }
+  }
+  wrap.innerHTML = '<div class="warn">Не удалось загрузить котировки (нет соединения с источником данных). Проверьте актуальный курс в приложении брокера или на finance.naver.com.</div>';
+}
+</script>
+</body>
+</html>
